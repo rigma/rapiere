@@ -1,5 +1,5 @@
 use chrono::{DateTime, FixedOffset, TimeDelta, TimeZone};
-use std::fmt;
+use std::{borrow::Cow, fmt};
 
 #[derive(Clone, Debug, Default)]
 pub struct Token {
@@ -175,6 +175,12 @@ pub enum TokenValue {
     String(String),
 }
 
+impl From<Cow<'_, str>> for TokenValue {
+    fn from(value: Cow<'_, str>) -> Self {
+        Self::String(value.to_string())
+    }
+}
+
 impl<T> From<DateTime<T>> for TokenValue
 where
     T: TimeZone,
@@ -217,6 +223,30 @@ impl From<&str> for TokenValue {
     #[inline(always)]
     fn from(value: &str) -> Self {
         Self::String(value.to_owned())
+    }
+}
+
+impl From<&[u8]> for TokenValue {
+    fn from(value: &[u8]) -> Self {
+        let value = String::from_utf8_lossy(value);
+
+        if let Ok(value) = value.parse::<f32>() {
+            return Self::Float(value);
+        }
+
+        if &value[..2] == "0X" || &value[..2] == "0x" {
+            if let Ok(value) = i64::from_str_radix(&value[2..], 16) {
+                Self::Integer(value)
+            } else {
+                Self::String(value.to_string())
+            }
+        } else {
+            if let Ok(value) = value.parse::<i64>() {
+                Self::Integer(value)
+            } else {
+                Self::String(value.to_string())
+            }
+        }
     }
 }
 

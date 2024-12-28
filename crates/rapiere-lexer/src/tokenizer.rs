@@ -1,23 +1,7 @@
-use crate::token::TokenKind;
-use thiserror::Error;
+use crate::{errors::TokenizerError, token::TokenKind};
 
 pub struct Tokenizer;
 pub type RawToken<'i> = (TokenKind, &'i [u8]);
-
-#[derive(Debug, Error)]
-pub enum TokenizerError {
-    #[error("bad number format")]
-    BadNumber,
-
-    #[error("malformatted hexadecimal integer")]
-    MalformatedHexNumber,
-
-    #[error("unrecognized token")]
-    UnrecognizedToken,
-
-    #[error("non-terminated string literal")]
-    UnterminatedStringLiteral,
-}
 
 impl Tokenizer {
     #[inline(always)]
