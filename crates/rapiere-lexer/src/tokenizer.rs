@@ -1,7 +1,7 @@
 use crate::{errors::TokenizerError, token::TokenKind};
 
-pub struct Tokenizer;
-pub type RawToken<'i> = (TokenKind, &'i [u8]);
+pub(crate) struct Tokenizer;
+pub(crate) type RawToken<'i> = (TokenKind, &'i [u8]);
 
 impl Tokenizer {
     #[inline(always)]
