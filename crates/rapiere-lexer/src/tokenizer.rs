@@ -1,4 +1,4 @@
-use crate::{errors::TokenizerError, token::TokenKind};
+use crate::{error::Error, token::TokenKind};
 
 pub(crate) struct Tokenizer;
 pub(crate) type RawToken<'i> = (TokenKind, &'i [u8]);
@@ -9,10 +9,7 @@ impl Tokenizer {
         Self {}
     }
 
-    pub fn tokenize<'i>(
-        &self,
-        input: &'i [u8],
-    ) -> Result<(Option<RawToken<'i>>, usize), TokenizerError> {
+    pub fn tokenize<'i>(&self, input: &'i [u8]) -> Result<(Option<RawToken<'i>>, usize), Error> {
         if input[0].is_ascii_whitespace() {
             return Ok((
                 None,
@@ -29,10 +26,10 @@ impl Tokenizer {
                     if *b == b'=' {
                         Ok((Some((TokenKind::NotEquals, &input[..2])), 2))
                     } else {
-                        Err(TokenizerError::UnrecognizedToken)
+                        Err(Error::UnrecognizedToken(None))
                     }
                 } else {
-                    Err(TokenizerError::UnrecognizedToken)
+                    Err(Error::UnrecognizedToken(None))
                 }
             }
             b'(' => Ok((Some((TokenKind::LeftParenthesis, &input[..1])), 1)),
@@ -76,15 +73,12 @@ impl Tokenizer {
             }
             b'0'..=b'9' => number(input),
             b if is_identifier_byte(b) => identifier(input),
-            _ => Err(TokenizerError::UnrecognizedToken),
+            _ => Err(Error::UnrecognizedToken(None)),
         }
     }
 }
 
-fn exponential_part(
-    input: &[u8],
-    position: usize,
-) -> Result<(Option<RawToken<'_>>, usize), TokenizerError> {
+fn exponential_part(input: &[u8], position: usize) -> Result<(Option<RawToken<'_>>, usize), Error> {
     if let Some(b) = input.get(position + 1) {
         let position = if *b == b'+' || *b == b'-' {
             position + 1
@@ -94,19 +88,19 @@ fn exponential_part(
 
         if let Some((idx, b)) = find_end_of_number(input, position + 1, u8::is_ascii_digit)? {
             if is_identifier_byte(b) || idx == position + 1 {
-                return Err(TokenizerError::BadNumber);
+                return Err(Error::BadNumber(None));
             }
 
             Ok((Some((TokenKind::Literal, &input[..idx])), idx))
         } else {
             if input.len() == position + 1 {
-                return Err(TokenizerError::BadNumber);
+                return Err(Error::BadNumber(None));
             }
 
             Ok((Some((TokenKind::Literal, input)), input.len()))
         }
     } else {
-        Err(TokenizerError::BadNumber)
+        Err(Error::BadNumber(None))
     }
 }
 
@@ -114,7 +108,7 @@ fn find_end_of_number(
     input: &[u8],
     position: usize,
     test: fn(&u8) -> bool,
-) -> Result<Option<(usize, u8)>, TokenizerError> {
+) -> Result<Option<(usize, u8)>, Error> {
     for (idx, b) in input.iter().enumerate().skip(position) {
         if test(b) {
             continue;
@@ -126,7 +120,7 @@ fn find_end_of_number(
                 continue;
             }
 
-            return Err(TokenizerError::BadNumber);
+            return Err(Error::BadNumber(None));
         } else {
             return Ok(Some((idx, *b)));
         }
@@ -135,15 +129,12 @@ fn find_end_of_number(
     Ok(None)
 }
 
-fn fractional_part(
-    input: &[u8],
-    position: usize,
-) -> Result<(Option<RawToken<'_>>, usize), TokenizerError> {
+fn fractional_part(input: &[u8], position: usize) -> Result<(Option<RawToken<'_>>, usize), Error> {
     if let Some((idx, b)) = find_end_of_number(input, position + 1, u8::is_ascii_digit)? {
         if b == b'E' || b == b'e' {
             return exponential_part(input, position);
         } else if is_identifier_byte(b) {
-            return Err(TokenizerError::BadNumber);
+            return Err(Error::BadNumber(None));
         }
 
         Ok((Some((TokenKind::Literal, &input[..idx])), idx))
@@ -152,23 +143,23 @@ fn fractional_part(
     }
 }
 
-fn hex_integer(input: &[u8]) -> Result<(Option<RawToken<'_>>, usize), TokenizerError> {
+fn hex_integer(input: &[u8]) -> Result<(Option<RawToken<'_>>, usize), Error> {
     if let Some((idx, b)) = find_end_of_number(input, 2, u8::is_ascii_hexdigit)? {
         if is_identifier_byte(b) || idx == 2 {
-            return Err(TokenizerError::MalformatedHexNumber);
+            return Err(Error::MalformatedHexNumber(None));
         }
 
         Ok((Some((TokenKind::Literal, &input[..idx])), idx))
     } else {
         if input.len() == 2 {
-            return Err(TokenizerError::MalformatedHexNumber);
+            return Err(Error::MalformatedHexNumber(None));
         }
 
         Ok((Some((TokenKind::Literal, input)), input.len()))
     }
 }
 
-fn identifier(input: &[u8]) -> Result<(Option<RawToken<'_>>, usize), TokenizerError> {
+fn identifier(input: &[u8]) -> Result<(Option<RawToken<'_>>, usize), Error> {
     let end = input.iter().skip(1).position(|&b| !is_identifier_byte(b));
     let idx = if let Some(end) = end {
         end + 1
@@ -195,7 +186,7 @@ fn is_identifier_byte(byte: u8) -> bool {
     byte.is_ascii_alphabetic() || byte > b'\x7f' || byte == b'_'
 }
 
-fn number(input: &[u8]) -> Result<(Option<RawToken<'_>>, usize), TokenizerError> {
+fn number(input: &[u8]) -> Result<(Option<RawToken<'_>>, usize), Error> {
     if input[0] == b'0' {
         if let Some(b) = input.get(1) {
             if *b == b'X' || *b == b'x' {
@@ -208,7 +199,7 @@ fn number(input: &[u8]) -> Result<(Option<RawToken<'_>>, usize), TokenizerError>
 
     if let Some((idx, b)) = find_end_of_number(input, 1, u8::is_ascii_digit)? {
         if is_identifier_byte(b) {
-            return Err(TokenizerError::BadNumber);
+            return Err(Error::BadNumber(None));
         }
 
         if b == b'E' || b == b'e' {
@@ -223,7 +214,7 @@ fn number(input: &[u8]) -> Result<(Option<RawToken<'_>>, usize), TokenizerError>
     }
 }
 
-fn string_literal(input: &[u8]) -> Result<(Option<RawToken<'_>>, usize), TokenizerError> {
+fn string_literal(input: &[u8]) -> Result<(Option<RawToken<'_>>, usize), Error> {
     let mut end = None;
     let mut previous = 0;
 
@@ -249,6 +240,6 @@ fn string_literal(input: &[u8]) -> Result<(Option<RawToken<'_>>, usize), Tokeniz
 
         Ok((Some((TokenKind::Literal, &input[..idx])), idx))
     } else {
-        Err(TokenizerError::UnterminatedStringLiteral)
+        Err(Error::UnterminatedStringLiteral(None))
     }
 }

@@ -1,5 +1,5 @@
 use crate::{
-    errors::Error,
+    error::Error,
     scanner::Scanner,
     token::{Token, TokenKind},
 };

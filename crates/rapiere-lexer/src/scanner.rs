@@ -1,5 +1,5 @@
 use crate::{
-    errors::Error,
+    error::Error,
     token::{Token, TokenKind},
     tokenizer::Tokenizer,
 };
@@ -100,12 +100,10 @@ impl Scanner {
                         continue;
                     }
                 }
-                Err(error) => {
-                    return Err(Error::ScannerError {
-                        error,
-                        line: self.line,
-                        column: self.column,
-                    });
+                Err(mut err) => {
+                    err.set_position(self.line, self.column);
+
+                    return Err(err);
                 }
             }
 
