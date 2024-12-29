@@ -6,9 +6,9 @@ use crate::{
 use std::fmt;
 
 pub struct Scanner {
-    column: usize,
-    line: usize,
-    mark: (usize, usize, usize),
+    column: u64,
+    line: u64,
+    mark: (usize, u64, u64),
     offset: usize,
     tokenizer: Tokenizer,
 }
@@ -26,7 +26,7 @@ impl Scanner {
     }
 
     #[inline(always)]
-    pub fn column(&self) -> usize {
+    pub fn column(&self) -> u64 {
         self.column
     }
 
@@ -45,7 +45,7 @@ impl Scanner {
     }
 
     #[inline(always)]
-    pub fn line(&self) -> usize {
+    pub fn line(&self) -> u64 {
         self.line
     }
 

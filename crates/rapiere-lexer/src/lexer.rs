@@ -23,12 +23,12 @@ impl<'i> Lexer<'i> {
     }
 
     #[inline(always)]
-    pub fn column(&self) -> usize {
+    pub fn column(&self) -> u64 {
         self.scanner.column()
     }
 
     #[inline(always)]
-    pub fn line(&self) -> usize {
+    pub fn line(&self) -> u64 {
         self.scanner.line()
     }
 

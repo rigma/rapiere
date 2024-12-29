@@ -1,18 +1,18 @@
 #[derive(Debug)]
 pub enum Error {
-    BadNumber(Option<(usize, usize)>),
+    BadNumber(Option<(u64, u64)>),
 
-    MalformatedHexNumber(Option<(usize, usize)>),
+    MalformatedHexNumber(Option<(u64, u64)>),
 
-    UnrecognizedToken(Option<(usize, usize)>),
+    UnrecognizedToken(Option<(u64, u64)>),
 
-    UnterminatedStringLiteral(Option<(usize, usize)>),
+    UnterminatedStringLiteral(Option<(u64, u64)>),
 }
 
 impl Error {
-    pub fn position(&self) -> (Option<usize>, Option<usize>) {
+    pub fn position(&self) -> (Option<u64>, Option<u64>) {
         #[inline(always)]
-        fn unwrap_position(pos: &Option<(usize, usize)>) -> (Option<usize>, Option<usize>) {
+        fn unwrap_position(pos: &Option<(u64, u64)>) -> (Option<u64>, Option<u64>) {
             if let Some((line, column)) = pos {
                 (Some(*line), Some(*column))
             } else {
@@ -28,7 +28,7 @@ impl Error {
         }
     }
 
-    pub fn set_position(&mut self, line: usize, column: usize) {
+    pub fn set_position(&mut self, line: u64, column: u64) {
         match *self {
             Self::BadNumber(ref mut pos) => *pos = Some((line, column)),
             Self::MalformatedHexNumber(ref mut pos) => *pos = Some((line, column)),

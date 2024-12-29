@@ -4,15 +4,15 @@ use std::{borrow::Cow, fmt};
 #[derive(Clone, Debug, Default)]
 pub struct Token {
     pub kind: TokenKind,
-    pub line: usize,
-    pub column: usize,
+    pub line: u64,
+    pub column: u64,
     pub length: usize,
     pub value: Option<TokenValue>,
 }
 
 impl Token {
     #[inline(always)]
-    pub fn new(kind: TokenKind, line: usize, column: usize, length: usize) -> Self {
+    pub fn new(kind: TokenKind, line: u64, column: u64, length: usize) -> Self {
         Self {
             kind,
             line,
