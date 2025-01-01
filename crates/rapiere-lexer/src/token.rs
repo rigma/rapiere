@@ -230,21 +230,23 @@ impl From<&[u8]> for TokenValue {
     fn from(value: &[u8]) -> Self {
         let value = String::from_utf8_lossy(value);
 
-        if let Ok(value) = value.parse::<f32>() {
-            return Self::Float(value);
-        }
-
-        if &value[..2] == "0X" || &value[..2] == "0x" {
+        if value.contains('.') {
+            if let Ok(value) = value.parse::<f32>() {
+                Self::Float(value)
+            } else {
+                Self::String(value.trim_matches('"').to_owned())
+            }
+        } else if &value[..2] == "0X" || &value[..2] == "0x" {
             if let Ok(value) = i64::from_str_radix(&value[2..], 16) {
                 Self::Integer(value)
             } else {
-                Self::String(value.to_string())
+                Self::String(value.trim_matches('"').to_owned())
             }
         } else {
             if let Ok(value) = value.parse::<i64>() {
                 Self::Integer(value)
             } else {
-                Self::String(value.to_string())
+                Self::String(value.trim_matches('"').to_owned())
             }
         }
     }
