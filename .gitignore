@@ -3,3 +3,6 @@ target/
 
 # MVSC debugging symbols
 *.pdb
+
+# Local plaintext files
+*.txt
