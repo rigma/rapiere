@@ -57,7 +57,17 @@ impl Tokenizer {
                 }
             }
             b'=' => Ok((Some((TokenKind::Equals, &input[..1])), 1)),
-            b'-' => Ok((Some((TokenKind::Minus, &input[..1])), 1)),
+            b'-' => {
+                if let Some(b) = input.get(1) {
+                    if b.is_ascii_digit() {
+                        number(input)
+                    } else {
+                        Ok((Some((TokenKind::Minus, &input[..1])), 1))
+                    }
+                } else {
+                    Ok((Some((TokenKind::Minus, &input[..1])), 1))
+                }
+            }
             b'"' => string_literal(input),
             b':' => Ok((Some((TokenKind::Colon, &input[..1])), 1)),
             b'.' => {
@@ -71,10 +81,35 @@ impl Tokenizer {
                     Ok((Some((TokenKind::Dot, &input[..1])), 1))
                 }
             }
+            b',' => Ok((Some((TokenKind::Comma, &input[..1])), 1)),
             b'0'..=b'9' => number(input),
-            b if is_identifier_byte(b) => identifier(input),
-            _ => Err(Error::UnrecognizedToken(None)),
+            b => {
+                if let Some(token) = boolean(input) {
+                    Ok(token)
+                } else if let Some(token) = null(input) {
+                    Ok(token)
+                } else if let Some(token) = keyword(input) {
+                    Ok(token)
+                } else {
+                    if is_identifier_byte(b) {
+                        identifier(input)
+                    } else {
+                        Err(Error::UnrecognizedToken(None))
+                    }
+                }
+            }
         }
+    }
+}
+
+#[inline(always)]
+fn boolean(input: &[u8]) -> Option<(Option<RawToken<'_>>, usize)> {
+    if &input[..4] == b"true" {
+        Some((Some((TokenKind::True, &input[..4])), 4))
+    } else if &input[..5] == b"false" {
+        Some((Some((TokenKind::False, &input[..5])), 5))
+    } else {
+        None
     }
 }
 
@@ -132,12 +167,10 @@ fn find_end_of_number(
 fn fractional_part(input: &[u8], position: usize) -> Result<(Option<RawToken<'_>>, usize), Error> {
     if let Some((idx, b)) = find_end_of_number(input, position + 1, u8::is_ascii_digit)? {
         if b == b'E' || b == b'e' {
-            return exponential_part(input, position);
-        } else if is_identifier_byte(b) {
-            return Err(Error::BadNumber(None));
+            exponential_part(input, position)
+        } else {
+            Ok((Some((TokenKind::Literal, &input[..idx])), idx))
         }
-
-        Ok((Some((TokenKind::Literal, &input[..idx])), idx))
     } else {
         Ok((Some((TokenKind::Literal, input)), input.len()))
     }
@@ -186,6 +219,28 @@ fn is_identifier_byte(byte: u8) -> bool {
     byte.is_ascii_alphabetic() || byte > b'\x7f' || byte == b'_'
 }
 
+#[inline(always)]
+fn keyword(input: &[u8]) -> Option<(Option<RawToken<'_>>, usize)> {
+    if &input[..2] == b"OR" {
+        Some((Some((TokenKind::Or, &input[..2])), 2))
+    } else if &input[..3] == b"AND" {
+        Some((Some((TokenKind::And, &input[..3])), 3))
+    } else if &input[..3] == b"NOT" {
+        Some((Some((TokenKind::Not, &input[..3])), 3))
+    } else {
+        None
+    }
+}
+
+#[inline(always)]
+fn null(input: &[u8]) -> Option<(Option<RawToken<'_>>, usize)> {
+    if &input[..4] == b"null" {
+        Some((Some((TokenKind::Null, &input[..4])), 4))
+    } else {
+        None
+    }
+}
+
 fn number(input: &[u8]) -> Result<(Option<RawToken<'_>>, usize), Error> {
     if input[0] == b'0' {
         if let Some(b) = input.get(1) {
@@ -198,10 +253,6 @@ fn number(input: &[u8]) -> Result<(Option<RawToken<'_>>, usize), Error> {
     }
 
     if let Some((idx, b)) = find_end_of_number(input, 1, u8::is_ascii_digit)? {
-        if is_identifier_byte(b) {
-            return Err(Error::BadNumber(None));
-        }
-
         if b == b'E' || b == b'e' {
             exponential_part(input, idx)
         } else if b == b'.' {
