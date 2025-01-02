@@ -1,35 +1,58 @@
 use clap::{command, Args, Parser, Subcommand};
 use rand::RngCore;
+use std::{borrow::Cow, path::PathBuf};
 
 #[derive(Parser)]
-#[command(name = "simulator")]
-pub struct Cli {
+#[command(name = "simulator", about, propagate_version = true, version)]
+pub(crate) struct Cli {
     #[command(subcommand)]
-    pub command: Commands,
+    pub(crate) command: Commands,
 }
 
 impl Cli {
     #[inline(always)]
-    pub fn seed(&self) -> u64 {
+    pub(crate) fn seed(&self) -> u64 {
         match &self.command {
-            Commands::Lexer(args) => {
-                if let Some(seed) = &args.seed {
-                    *seed
-                } else {
-                    rand::thread_rng().next_u64()
-                }
-            }
+            Commands::Lexer(args) => args.seed(),
         }
     }
 }
 
-#[derive(Args)]
-pub struct CommandArgs {
-    #[arg(help = "provide a seed to reproduce a run")]
-    pub seed: Option<u64>,
+#[derive(Subcommand)]
+pub(crate) enum Commands {
+    /// Run the simulator to test `rapiere-lexer` crate
+    Lexer(CommandArgs),
 }
 
-#[derive(Subcommand)]
-pub enum Commands {
-    Lexer(CommandArgs),
+#[derive(Args)]
+pub(crate) struct CommandArgs {
+    #[arg(help = "Seed of the run to reproduce")]
+    seed: Option<u64>,
+
+    #[arg(
+        short = 'p',
+        long = "plan",
+        help = "Path used to save the simulation plan"
+    )]
+    plan_path: Option<Cow<'static, str>>,
+}
+
+impl CommandArgs {
+    #[inline(always)]
+    fn seed(&self) -> u64 {
+        if let Some(seed) = &self.seed {
+            *seed
+        } else {
+            rand::thread_rng().next_u64()
+        }
+    }
+
+    #[inline(always)]
+    pub(crate) fn plan_path(&self) -> PathBuf {
+        if let Some(path) = &self.plan_path {
+            PathBuf::from(path.as_ref())
+        } else {
+            PathBuf::from("plan.txt")
+        }
+    }
 }

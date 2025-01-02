@@ -40,7 +40,7 @@ impl<'s> Arbitrary for Fragment<'s> {
             FragmentKind::Operator => gen_operator(rng),
             FragmentKind::Other => Self::new(*pick(&["(", ")", ",", "."], rng)),
             FragmentKind::Whitespace => {
-                let whitespace = vec![*pick(&[b'\n', b' '], rng)];
+                let whitespace = vec![*pick(&[0x9, 0xa, 0xc, b'\n', b' '], rng)];
                 let whitespace =
                     String::from_utf8(whitespace).expect("unable to generate valid whitespace");
 
