@@ -73,32 +73,31 @@ impl Tokenizer {
             }
             b',' => Ok((Some((TokenKind::Comma, &input[..1])), 1)),
             b'0'..=b'9' => number(input),
+            b'A' | b'O' | b'N' if is_keyword(input) => keyword(input),
+            b'f' | b't' if is_boolean(input) => boolean(input),
+            b'n' if is_null(input) => null(input),
             b if b.is_ascii_whitespace() => Ok((Some((TokenKind::Whitespace, &input[..1])), 1)),
-            b if is_identifier_byte(b) => {
-                if let Some(token) = boolean(input) {
-                    Ok(token)
-                } else if let Some(token) = null(input) {
-                    Ok(token)
-                } else if let Some(token) = keyword(input) {
-                    Ok(token)
-                } else {
-                    Ok(identifier(input))
-                }
-            }
+            b if is_identifier_byte(b) => Ok(identifier(input)),
             _ => Err(Error::UnrecognizedToken(None)),
         }
     }
 }
 
 #[inline(always)]
-fn boolean(input: &[u8]) -> Option<(Option<RawToken<'_>>, usize)> {
-    if &input[..4] == b"true" {
-        Some((Some((TokenKind::True, &input[..4])), 4))
-    } else if &input[..5] == b"false" {
-        Some((Some((TokenKind::False, &input[..5])), 5))
-    } else {
-        None
+fn boolean(input: &[u8]) -> Result<(Option<RawToken<'_>>, usize), Error> {
+    if let Some(fragment) = input.get(..4) {
+        if fragment == b"true" {
+            return Ok((Some((TokenKind::True, &input[..4])), 4));
+        }
     }
+
+    if let Some(fragment) = input.get(..5) {
+        if fragment == b"false" {
+            return Ok((Some((TokenKind::False, &input[..5])), 5));
+        }
+    }
+
+    Err(Error::UnrecognizedToken(None))
 }
 
 fn exponential_part(input: &[u8], position: usize) -> Result<(Option<RawToken<'_>>, usize), Error> {
@@ -191,31 +190,84 @@ fn identifier(input: &[u8]) -> (Option<RawToken<'_>>, usize) {
     (Some((TokenKind::Identifier, &input[..idx])), idx)
 }
 
+#[inline]
+fn is_boolean(input: &[u8]) -> bool {
+    if let Some(fragment) = input.get(..4) {
+        if fragment == b"true" {
+            return true;
+        }
+    }
+
+    if let Some(fragment) = input.get(..5) {
+        if fragment == b"false" {
+            return true;
+        }
+    }
+
+    false
+}
+
 #[inline(always)]
 fn is_identifier_byte(byte: u8) -> bool {
     byte.is_ascii_alphabetic() || byte > b'\x7f' || byte == b'_'
 }
 
-#[inline(always)]
-fn keyword(input: &[u8]) -> Option<(Option<RawToken<'_>>, usize)> {
-    if &input[..2] == b"OR" {
-        Some((Some((TokenKind::Or, &input[..2])), 2))
-    } else if &input[..3] == b"AND" {
-        Some((Some((TokenKind::And, &input[..3])), 3))
-    } else if &input[..3] == b"NOT" {
-        Some((Some((TokenKind::Not, &input[..3])), 3))
-    } else {
-        None
+#[inline]
+fn is_keyword(input: &[u8]) -> bool {
+    if let Some(fragment) = input.get(..2) {
+        if fragment == b"OR" {
+            return true;
+        }
     }
+
+    if let Some(fragment) = input.get(..3) {
+        if fragment == b"AND" || fragment == b"NOT" {
+            return true;
+        }
+    }
+
+    false
+}
+
+#[inline]
+fn is_null(input: &[u8]) -> bool {
+    if let Some(fragment) = input.get(..4) {
+        if fragment == b"null" {
+            return true;
+        }
+    }
+
+    false
 }
 
 #[inline(always)]
-fn null(input: &[u8]) -> Option<(Option<RawToken<'_>>, usize)> {
-    if &input[..4] == b"null" {
-        Some((Some((TokenKind::Null, &input[..4])), 4))
-    } else {
-        None
+fn keyword(input: &[u8]) -> Result<(Option<RawToken<'_>>, usize), Error> {
+    if let Some(fragment) = input.get(..2) {
+        if fragment == b"OR" {
+            return Ok((Some((TokenKind::Or, &input[..2])), 2));
+        }
     }
+
+    if let Some(fragment) = input.get(..3) {
+        if fragment == b"AND" {
+            return Ok((Some((TokenKind::And, &input[..3])), 3));
+        } else if fragment == b"NOT" {
+            return Ok((Some((TokenKind::Not, &input[..3])), 3));
+        }
+    }
+
+    Err(Error::UnrecognizedToken(None))
+}
+
+#[inline(always)]
+fn null(input: &[u8]) -> Result<(Option<RawToken<'_>>, usize), Error> {
+    if let Some(fragment) = input.get(..4) {
+        if fragment == b"null" {
+            return Ok((Some((TokenKind::Null, &input[..4])), 4));
+        }
+    }
+
+    Err(Error::UnrecognizedToken(None))
 }
 
 fn number(input: &[u8]) -> Result<(Option<RawToken<'_>>, usize), Error> {
