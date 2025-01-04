@@ -234,7 +234,7 @@ impl From<&[u8]> for TokenValue {
     fn from(value: &[u8]) -> Self {
         let value = String::from_utf8_lossy(value);
 
-        if value.contains('.') {
+        if value.contains('E') || value.contains('e') || value.contains('.') {
             if let Ok(value) = value.parse::<f32>() {
                 Self::Float(value)
             } else {

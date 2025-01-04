@@ -110,7 +110,22 @@ mod tests {
     #[case::float_literal(b"3.1415", TokenKind::Literal, Some(TokenValue::Float(3.1415)))]
     #[case::negative_float_literal(b"-1.618", TokenKind::Literal, Some(TokenValue::Float(-1.618)))]
     #[case::scientific_notation_float_literal(
+        b"1e30",
+        TokenKind::Literal,
+        Some(TokenValue::Float(1e30))
+    )]
+    #[case::scientific_notation_float_literal_with_capital_exponent(
+        b"1E30",
+        TokenKind::Literal,
+        Some(TokenValue::Float(1e30))
+    )]
+    #[case::scientific_notation_with_fractional_part_float_literal(
         b"6.62607015e-34",
+        TokenKind::Literal,
+        Some(TokenValue::Float(6.62607015e-34))
+    )]
+    #[case::scientific_notation_with_fractional_part_float_literal_with_capital_exponent(
+        b"6.62607015E-34",
         TokenKind::Literal,
         Some(TokenValue::Float(6.62607015e-34))
     )]
