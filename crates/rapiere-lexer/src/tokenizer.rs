@@ -10,16 +10,6 @@ impl Tokenizer {
     }
 
     pub fn tokenize<'i>(&self, input: &'i [u8]) -> Result<(Option<RawToken<'i>>, usize), Error> {
-        if input[0].is_ascii_whitespace() {
-            return Ok((
-                None,
-                match input.iter().skip(1).position(|&b| !b.is_ascii_whitespace()) {
-                    Some(pos) => pos + 1,
-                    None => input.len(),
-                },
-            ));
-        }
-
         match input[0] {
             b'!' => {
                 if let Some(b) = input.get(1) {
@@ -68,7 +58,7 @@ impl Tokenizer {
                     Ok((Some((TokenKind::Minus, &input[..1])), 1))
                 }
             }
-            b'"' => string_literal(input),
+            b'"' => string(input),
             b':' => Ok((Some((TokenKind::Colon, &input[..1])), 1)),
             b'.' => {
                 if let Some(b) = input.get(1) {
@@ -83,7 +73,8 @@ impl Tokenizer {
             }
             b',' => Ok((Some((TokenKind::Comma, &input[..1])), 1)),
             b'0'..=b'9' => number(input),
-            b => {
+            b if b.is_ascii_whitespace() => Ok((Some((TokenKind::Whitespace, &input[..1])), 1)),
+            b if is_identifier_byte(b) => {
                 if let Some(token) = boolean(input) {
                     Ok(token)
                 } else if let Some(token) = null(input) {
@@ -91,13 +82,10 @@ impl Tokenizer {
                 } else if let Some(token) = keyword(input) {
                     Ok(token)
                 } else {
-                    if is_identifier_byte(b) {
-                        identifier(input)
-                    } else {
-                        Err(Error::UnrecognizedToken(None))
-                    }
+                    Ok(identifier(input))
                 }
             }
+            _ => Err(Error::UnrecognizedToken(None)),
         }
     }
 }
@@ -192,7 +180,7 @@ fn hex_integer(input: &[u8]) -> Result<(Option<RawToken<'_>>, usize), Error> {
     }
 }
 
-fn identifier(input: &[u8]) -> Result<(Option<RawToken<'_>>, usize), Error> {
+fn identifier(input: &[u8]) -> (Option<RawToken<'_>>, usize) {
     let end = input.iter().skip(1).position(|&b| !is_identifier_byte(b));
     let idx = if let Some(end) = end {
         end + 1
@@ -200,18 +188,7 @@ fn identifier(input: &[u8]) -> Result<(Option<RawToken<'_>>, usize), Error> {
         input.len()
     };
 
-    let word = &input[..idx];
-    let kind = match word {
-        b"AND" => TokenKind::And,
-        b"OR" => TokenKind::Or,
-        b"NOT" => TokenKind::Not,
-        b"true" => TokenKind::True,
-        b"false" => TokenKind::False,
-        b"null" => TokenKind::Null,
-        _ => TokenKind::Identifier,
-    };
-
-    Ok((Some((kind, word)), idx))
+    (Some((TokenKind::Identifier, &input[..idx])), idx)
 }
 
 #[inline(always)]
@@ -265,7 +242,7 @@ fn number(input: &[u8]) -> Result<(Option<RawToken<'_>>, usize), Error> {
     }
 }
 
-fn string_literal(input: &[u8]) -> Result<(Option<RawToken<'_>>, usize), Error> {
+fn string(input: &[u8]) -> Result<(Option<RawToken<'_>>, usize), Error> {
     let mut end = None;
     let mut previous = 0;
 

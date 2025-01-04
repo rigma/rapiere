@@ -87,9 +87,12 @@ mod tests {
 
     #[test]
     fn it_parses_raw_input_into_tokens() {
-        let input = b"():,.-=!=>>=<<=42\"hello world\"3.1415-1.618true-12falsenullANDORNOTfoo_bar";
+        let input =
+            b" (\t):,.-=!=>>=<<=42\"hello world\"3.1415-1.618true-12falsenullANDORNOTfoo_bar";
         let expected_tokens = vec![
+            (TokenKind::Whitespace, None),
             (TokenKind::LeftParenthesis, None),
+            (TokenKind::Whitespace, None),
             (TokenKind::RightParenthesis, None),
             (TokenKind::Colon, None),
             (TokenKind::Comma, None),
@@ -127,6 +130,7 @@ mod tests {
 
         loop {
             let token = lexer.next_token();
+            dbg!(&token);
             assert!(token.is_ok());
             let token = token.unwrap();
 
@@ -138,20 +142,5 @@ mod tests {
                 _ => break,
             }
         }
-    }
-
-    #[test]
-    fn it_ignores_ascii_whitespaces() {
-        let input = [0x9, 0xa, 0xc, b'\n', b' '];
-
-        let mut lexer = Lexer::new(&input);
-        let token = lexer.next_token();
-        assert!(token.is_ok());
-
-        let token = token.unwrap();
-        assert!(token.is_some());
-
-        let token = token.unwrap();
-        assert_eq!(token.kind, TokenKind::EOF);
     }
 }
