@@ -82,17 +82,81 @@ impl fmt::Display for Lexer<'_> {
 
 #[cfg(test)]
 mod tests {
-    pub use super::*;
-    pub use crate::token::{TokenKind, TokenValue};
+    use super::*;
+    use crate::token::{TokenKind, TokenValue};
+    use rstest::rstest;
+
+    #[rstest]
+    #[case::and_keyword(b"AND", TokenKind::And, None)]
+    #[case::or_keyword(b"OR", TokenKind::Or, None)]
+    #[case::not_keyword(b"NOT", TokenKind::Not, None)]
+    #[case::identifier(
+        b"foo_bar",
+        TokenKind::Identifier,
+        Some(TokenValue::String("foo_bar".to_owned())),
+    )]
+    #[case::left_parenthesis(b"(", TokenKind::LeftParenthesis, None)]
+    #[case::right_parenthesis(b")", TokenKind::RightParenthesis, None)]
+    #[case::colon(b":", TokenKind::Colon, None)]
+    #[case::comma(b",", TokenKind::Comma, None)]
+    #[case::dot(b".", TokenKind::Dot, None)]
+    #[case::minus(b"-", TokenKind::Minus, None)]
+    #[case::equals(b"=", TokenKind::Equals, None)]
+    #[case::not_equals(b"!=", TokenKind::NotEquals, None)]
+    #[case::greater_than(b">", TokenKind::GreaterThan, None)]
+    #[case::greater_than_equals(b">=", TokenKind::GreaterThanEquals, None)]
+    #[case::lesser_than(b"<", TokenKind::LesserThan, None)]
+    #[case::lesser_than_equals(b"<=", TokenKind::LesserThanEquals, None)]
+    #[case::float_literal(b"3.1415", TokenKind::Literal, Some(TokenValue::Float(3.1415)))]
+    #[case::negative_float_literal(b"-1.618", TokenKind::Literal, Some(TokenValue::Float(-1.618)))]
+    #[case::scientific_notation_float_literal(
+        b"6.62607015e-34",
+        TokenKind::Literal,
+        Some(TokenValue::Float(6.62607015e-34))
+    )]
+    #[case::integer_literal(b"42", TokenKind::Literal, Some(TokenValue::Integer(42)))]
+    #[case::negative_integer_literal(b"-12", TokenKind::Literal, Some(TokenValue::Integer(-12)))]
+    #[case::hex_integer_literal_1(b"0x2a", TokenKind::Literal, Some(TokenValue::Integer(42)))]
+    #[case::hex_integer_literal_2(b"0x2A", TokenKind::Literal, Some(TokenValue::Integer(42)))]
+    #[case::hex_integer_literal_3(b"0X2a", TokenKind::Literal, Some(TokenValue::Integer(42)))]
+    #[case::hex_integer_literal_4(b"0X2A", TokenKind::Literal, Some(TokenValue::Integer(42)))]
+    #[case::string_literal(
+        b"\"hello world\"",
+        TokenKind::Literal,
+        Some(TokenValue::String("hello world".to_owned())),
+    )]
+    #[case::true_value(b"true", TokenKind::True, None)]
+    #[case::false_value(b"false", TokenKind::False, None)]
+    #[case::null_value(b"null", TokenKind::Null, None)]
+    #[case::whitespace_token(b" ", TokenKind::Whitespace, None)]
+    #[case::tab_whitespace(b"\t", TokenKind::Whitespace, None)]
+    #[case::line_feed_whitespace(&[0xa], TokenKind::Whitespace, None)]
+    #[case::form_feed_whitespace(&[0xd], TokenKind::Whitespace, None)]
+    #[case::eof(b"", TokenKind::EOF, None)]
+    fn it_parses_a_token(
+        #[case] input: &[u8],
+        #[case] expected_kind: TokenKind,
+        #[case] expected_value: Option<TokenValue>,
+    ) {
+        let mut lexer = Lexer::new(input);
+
+        let token = lexer.next_token();
+        assert!(token.is_ok());
+
+        let token = token.unwrap();
+        assert!(token.is_some());
+
+        let token = token.unwrap();
+        assert_eq!(token.kind, expected_kind);
+        assert_eq!(token.value, expected_value);
+    }
 
     #[test]
-    fn it_parses_raw_input_into_tokens() {
-        let input =
-            b" (\t):,.-=!=>>=<<=42\"hello world\"3.1415-1.618true-12falsenullANDORNOTfoo_bar";
+    fn it_read_an_input_of_tokens() {
+        let input = b" ():,.-=!=>>=<<=42\"hello world\"3.1415truefalsenullANDORNOTfoo_bar";
         let expected_tokens = vec![
             (TokenKind::Whitespace, None),
             (TokenKind::LeftParenthesis, None),
-            (TokenKind::Whitespace, None),
             (TokenKind::RightParenthesis, None),
             (TokenKind::Colon, None),
             (TokenKind::Comma, None),
@@ -110,9 +174,7 @@ mod tests {
                 Some(TokenValue::String("hello world".to_owned())),
             ),
             (TokenKind::Literal, Some(TokenValue::Float(3.1415))),
-            (TokenKind::Literal, Some(TokenValue::Float(-1.618))),
             (TokenKind::True, None),
-            (TokenKind::Literal, Some(TokenValue::Integer(-12))),
             (TokenKind::False, None),
             (TokenKind::Null, None),
             (TokenKind::And, None),
@@ -130,11 +192,9 @@ mod tests {
 
         loop {
             let token = lexer.next_token();
-            dbg!(&token);
             assert!(token.is_ok());
-            let token = token.unwrap();
 
-            match (token, iterator.next()) {
+            match (token.unwrap(), iterator.next()) {
                 (Some(token), Some((expected_token, expected_value))) => {
                     assert_eq!(token.kind, *expected_token);
                     assert_eq!(token.value, *expected_value);

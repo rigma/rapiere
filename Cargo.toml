@@ -9,4 +9,5 @@ authors = ["Romain Failla <rigbuntu@gmail.com>"]
 license = "MIT OR Apache-2.0"
 
 [workspace.dependencies]
+rstest = { version = "0.24.0", default-features = false, features = ["crate-name"] }
 thiserror = "2"

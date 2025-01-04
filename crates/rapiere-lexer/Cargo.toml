@@ -11,3 +11,6 @@ path = "src/lib.rs"
 
 [dependencies]
 chrono = { version = "0.4", default-features = false, features = ["alloc", "std"] }
+
+[dev-dependencies]
+rstest.workspace = true
