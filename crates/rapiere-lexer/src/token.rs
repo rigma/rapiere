@@ -128,6 +128,9 @@ pub enum TokenKind {
     /// null
     Null,
 
+    /// New line
+    NewLine,
+
     /// Whitespace
     Whitespace,
 
@@ -164,6 +167,7 @@ impl fmt::Display for TokenKind {
             Self::False => write!(f, "False"),
             Self::Null => write!(f, "Null"),
             Self::EOF => write!(f, "EOF"),
+            Self::NewLine => write!(f, "NewLine"),
             Self::Whitespace => write!(f, "Whitespace"),
             Self::Undefined => write!(f, "Undefined"),
         }

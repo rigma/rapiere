@@ -11,6 +11,7 @@ impl Tokenizer {
 
     pub fn tokenize<'i>(&self, input: &'i [u8]) -> Result<(Option<RawToken<'i>>, usize), Error> {
         match input[0] {
+            b'\n' => Ok((Some((TokenKind::NewLine, &input[..1])), 1)),
             b'!' => {
                 if let Some(b) = input.get(1) {
                     if *b == b'=' {

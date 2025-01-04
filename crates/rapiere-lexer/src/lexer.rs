@@ -145,8 +145,8 @@ mod tests {
     #[case::null_value(b"null", TokenKind::Null, None)]
     #[case::whitespace_token(b" ", TokenKind::Whitespace, None)]
     #[case::tab_whitespace(b"\t", TokenKind::Whitespace, None)]
-    #[case::line_feed_whitespace(&[0xa], TokenKind::Whitespace, None)]
     #[case::form_feed_whitespace(&[0xd], TokenKind::Whitespace, None)]
+    #[case::newline(b"\n", TokenKind::NewLine, None)]
     #[case::eof(b"", TokenKind::EOF, None)]
     fn it_parses_a_token(
         #[case] input: &[u8],
@@ -168,7 +168,7 @@ mod tests {
 
     #[test]
     fn it_read_an_input_of_tokens() {
-        let input = b" ():,.-=!=>>=<<=42\"hello world\"3.1415truefalsenullANDORNOTfoo_bar";
+        let input = b" ():,.-=!=>>=<<=42\"hello world\"3.1415truefalsenullANDORNOTfoo_bar\n";
         let expected_tokens = vec![
             (TokenKind::Whitespace, None),
             (TokenKind::LeftParenthesis, None),
@@ -199,6 +199,7 @@ mod tests {
                 TokenKind::Identifier,
                 Some(TokenValue::String("foo_bar".to_owned())),
             ),
+            (TokenKind::NewLine, None),
             (TokenKind::EOF, None),
         ];
 
