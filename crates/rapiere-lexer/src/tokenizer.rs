@@ -153,9 +153,15 @@ fn find_end_of_number(
 }
 
 fn fractional_part(input: &[u8], position: usize) -> Result<(Option<RawToken<'_>>, usize), Error> {
-    if let Some((idx, b)) = find_end_of_number(input, position + 1, u8::is_ascii_digit)? {
-        if b == b'E' || b == b'e' {
-            exponential_part(input, idx)
+    if let Some((idx, byte)) = find_end_of_number(input, position + 1, u8::is_ascii_digit)? {
+        if byte == b'E' || byte == b'e' {
+            if input.get(idx + 1).map_or(false, |next_byte| {
+                next_byte.is_ascii_digit() || *next_byte == b'+' || *next_byte == b'-'
+            }) {
+                exponential_part(input, idx)
+            } else {
+                Ok((Some((TokenKind::Literal, &input[..idx])), idx))
+            }
         } else {
             Ok((Some((TokenKind::Literal, &input[..idx])), idx))
         }
@@ -282,11 +288,21 @@ fn number(input: &[u8]) -> Result<(Option<RawToken<'_>>, usize), Error> {
         }
     }
 
-    if let Some((idx, b)) = find_end_of_number(input, 1, u8::is_ascii_digit)? {
-        if b == b'E' || b == b'e' {
-            exponential_part(input, idx)
-        } else if b == b'.' {
-            fractional_part(input, idx)
+    if let Some((idx, byte)) = find_end_of_number(input, 1, u8::is_ascii_digit)? {
+        if byte == b'E' || byte == b'e' {
+            if input.get(idx + 1).map_or(false, |next_byte| {
+                next_byte.is_ascii_digit() || *next_byte == b'+' || *next_byte == b'-'
+            }) {
+                exponential_part(input, idx)
+            } else {
+                Ok((Some((TokenKind::Literal, &input[..idx])), idx))
+            }
+        } else if byte == b'.' {
+            if input.get(idx + 1).map_or(false, u8::is_ascii_digit) {
+                fractional_part(input, idx)
+            } else {
+                Ok((Some((TokenKind::Literal, &input[..idx])), idx))
+            }
         } else {
             Ok((Some((TokenKind::Literal, &input[..idx])), idx))
         }
