@@ -1,0 +1,13 @@
+[package]
+name = "rapiere-compiler"
+version = "0.0.0"
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[lib]
+name = "rapiere_compiler"
+path = "src/lib.rs"
+
+[dependencies]
+rapiere-lexer = { path = "../rapiere-lexer" }

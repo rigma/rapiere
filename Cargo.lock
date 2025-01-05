@@ -275,6 +275,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "rapiere-compiler"
+version = "0.0.0"
+dependencies = [
+ "rapiere-lexer",
+]
+
+[[package]]
 name = "rapiere-lexer"
 version = "0.1.0"
 dependencies = [

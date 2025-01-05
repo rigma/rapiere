@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/rapiere-lexer", "crates/simulator"]
+members = [ "crates/rapiere-compiler","crates/rapiere-lexer", "crates/simulator"]
 
 [workspace.package]
 version = "0.0.0"
