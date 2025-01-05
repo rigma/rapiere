@@ -244,7 +244,7 @@ impl From<&[u8]> for TokenValue {
             } else {
                 Self::String(value.trim_matches('"').to_owned())
             }
-        } else if &value[..2] == "0X" || &value[..2] == "0x" {
+        } else if value.get(..2).map_or(false, |f| f == "0X" || f == "0x") {
             if let Ok(value) = i64::from_str_radix(&value[2..], 16) {
                 Self::Integer(value)
             } else {
