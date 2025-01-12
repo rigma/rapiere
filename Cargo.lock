@@ -279,6 +279,7 @@ name = "rapiere-compiler"
 version = "0.0.0"
 dependencies = [
  "rapiere-lexer",
+ "smallvec",
 ]
 
 [[package]]
