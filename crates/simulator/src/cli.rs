@@ -43,7 +43,7 @@ impl CommandArgs {
         if let Some(seed) = &self.seed {
             *seed
         } else {
-            rand::thread_rng().next_u64()
+            rand::rng().next_u64()
         }
     }
 

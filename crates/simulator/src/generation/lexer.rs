@@ -1,4 +1,4 @@
-use super::{gen_random_string, pick, readable_name_custom, Arbitrary};
+use super::{pick, random_string, readable_name_custom, Arbitrary};
 use crate::models::lexer::{Fragment, RawInput};
 use rand::Rng;
 
@@ -34,10 +34,10 @@ impl<'s> Arbitrary for Fragment<'s> {
         );
 
         match ty {
-            FragmentKind::Field => gen_field(rng),
+            FragmentKind::Field => random_field(rng),
             FragmentKind::Keyword => Self::new(*pick(&["AND", "OR", "NOT"], rng)),
-            FragmentKind::Literal => gen_literal(rng),
-            FragmentKind::Operator => gen_operator(rng),
+            FragmentKind::Literal => random_literal(rng),
+            FragmentKind::Operator => random_operator(rng),
             FragmentKind::Other => Self::new(*pick(&["(", ")", ",", "."], rng)),
             FragmentKind::Whitespace => {
                 let whitespace = vec![*pick(&[0x9, 0xa, 0xc, b'\n', b' '], rng)];
@@ -52,7 +52,7 @@ impl<'s> Arbitrary for Fragment<'s> {
 
 impl<'i> Arbitrary for RawInput<'i> {
     fn arbitrary<R: Rng>(rng: &mut R) -> Self {
-        let size = rng.gen_range(64..2 * 1024);
+        let size = rng.random_range(64..2 * 1024);
         let mut fragments = Vec::with_capacity(size);
 
         for _ in 0..size {
@@ -64,12 +64,12 @@ impl<'i> Arbitrary for RawInput<'i> {
 }
 
 #[inline(always)]
-fn gen_field<'s, R: Rng>(rng: &mut R) -> Fragment<'s> {
+fn random_field<'s, R: Rng>(rng: &mut R) -> Fragment<'s> {
     Fragment::new(&readable_name_custom("_", rng))
 }
 
 #[inline(always)]
-fn gen_literal<'s, R: Rng>(rng: &mut R) -> Fragment<'s> {
+fn random_literal<'s, R: Rng>(rng: &mut R) -> Fragment<'s> {
     let ty = pick(
         &[
             LiteralType::Boolean,
@@ -84,18 +84,18 @@ fn gen_literal<'s, R: Rng>(rng: &mut R) -> Fragment<'s> {
     match ty {
         LiteralType::Boolean => Fragment::new(*pick(&["true", "false"], rng)),
         LiteralType::Float => {
-            let value = rng.gen::<f32>();
-            let value = if rng.gen() { -value } else { value };
+            let value = rng.random::<f32>();
+            let value = if rng.random() { -value } else { value };
 
             Fragment::new(&value.to_string())
         }
-        LiteralType::Integer => Fragment::new(&rng.gen::<i64>().to_string()),
+        LiteralType::Integer => Fragment::new(&rng.random::<i64>().to_string()),
         LiteralType::Null => Fragment::new("null"),
-        LiteralType::String => Fragment::new(&gen_random_string(rng)),
+        LiteralType::String => Fragment::new(&random_string(rng)),
     }
 }
 
 #[inline(always)]
-fn gen_operator<'s, R: Rng>(rng: &mut R) -> Fragment<'s> {
+fn random_operator<'s, R: Rng>(rng: &mut R) -> Fragment<'s> {
     Fragment::new(*pick(&[":", "-", "=", "!=", ">", ">=", "<", "<="], rng))
 }
